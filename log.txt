@@ -1,0 +1,93 @@
+4GPU running
+model3 perturb_step=100    random=0.3     criterion=CE    
+     acc=    racc=0.294   time=04:51
+model3	perturb_steps=100	random=0.01
+	 Natural Acc: 0.80330, Robust acc: 0.31840, distance:0.03137 time=04:28
+model3	perturb_steps=1000	random=0.01
+     racc = 0.15    time=46min
+model3	perturb_steps=500	step_size=0.01	random=0.01
+     racc=0.19      time=20+ min
+model3	perturb_steps=200	step_size=0.01	random=0.01
+	 Natural Acc: 0.80330, Robust acc: 0.18850, distance:0.03137 time=09:12
+model3	perturb_steps=100	step_size=0.01	random=0.01
+	 Natural Acc: 0.80330, Robust acc: 0.21590, distance:0.03137 time=04:50
+
+model3	perturb_steps=20	step_size=0.03	random=0
+    Checkwhetheritisobfucatedornot	 Natural Acc: 0.80330, Robust acc: 0.57170, distance:0.09000
+Conclusion: model3 -- obfucated gradient model, racc=0.19
+                        params: random f(x) and PGD with step=200, stepsize=0.01(can be changed) 
+
+model2	perturb_steps=100	step_size=0.003	random=0
+	 Natural Acc: 0.83020, Robust acc: 0.49950, distance:0.03137 time = 4-5min
+model2	perturb_steps=20	step_size=0.03	random=0
+	 Natural Acc: 0.83020, Robust acc: 0.50230, distance:0.03137 time = 1min
+model2	perturb_steps=20	step_size=0.03	random=0
+checkWhetherItIsObfucatedOrNot	 Natural Acc: 0.83020, Robust acc: 0.03440, distance:0.09000
+model2	perturb_steps=20	step_size=0.03	random=0
+checkWhetherItIsObfucatedOrNot	 Natural Acc: 0.83020, Robust acc: 0.27660, distance:0.05000
+model2	perturb_steps=200	step_size=0.03	random=0
+    TransferFromModel3 FAIL!!!!
+
+model2	perturb_steps=20	step_size=0.003	random=0
+	 Natural Acc: 0.83020, Robust acc: 0.54500, distance:0.03137
+model2	perturb_steps=20	step_size=0.003	random=0
+    Vanillia	 Natural Acc: 0.83020, Robust acc: 0.51290, distance:0.03137
+model2	perturb_steps=20	step_size=0.003	random=0
+UseODImodel2	perturb_steps=20	step_size=0.003	random=0
+UseODI
+	 Natural Acc: 0.83020, Robust acc: 0.54670, distance:0.03137
+model4	perturb_steps=20	step_size=0.003	random=0
+UseODI	 Natural Acc: 0.84920, Robust acc: 0.59010, distance:0.03137
+model4	perturb_steps=20	step_size=0.003	random=0.03
+UseODI	 Natural Acc: 0.84920, Robust acc: 0.58160, distance:0.03137
+model4	perturb_steps=20	step_size=0.003	random=0.03
+UseODI	 Natural Acc: 0.84920, Robust acc: 0.56780, distance:0.03137
+model4	perturb_steps=20	step_size=0.003	random=0.03
+	 Natural Acc: 0.84920, Robust acc: 0.56180, distance:0.03137
+model4	perturb_steps=20	step_size=0.003	random=0.03
+model4	perturb_steps=20	step_size=0.003	random=0.03
+model4	perturb_steps=20	step_size=0.003	random=0.03
+model4	perturb_steps=20	step_size=0.003	random=0.03
+model4	perturb_steps=20	step_size=0.003	random=0.03
+model4	perturb_steps=20	step_size=0.003	random=0.03
+model4	perturb_steps=20	step_size=0.003	random=0.03
+	 Natural Acc: 0.84920, Robust acc: 0.56110, distance:0.03137
+model4	perturb_steps=20	step_size=0.003	random=0
+	 Natural Acc: 0.84920, Robust acc: 0.54560, distance:0.03137
+     == No ODI, With Entropy in loss, i.e., coef=0.2 / xxxx ==
+model2	perturb_steps=20	step_size=0.003	random=0
+	 Natural Acc: 0.83020, Robust acc: 0.50030, distance:0.03137
+model2	perturb_steps=50	step_size=0.003	random=0
+	 Natural Acc: 0.83020, Robust acc: 0.49100, distance:0.03137
+model2	perturb_steps=50	step_size=0.003	random=0
+model2	perturb_steps=100	step_size=0.003	random=0
+	 Natural Acc: 0.83020, Robust acc: 0.49000, distance:0.03137
+model4	perturb_steps=50	step_size=0.003	random=0
+     No coef, just Entro vector
+	 ***Natural Acc: 0.84920, Robust acc: 0.53860, distance:0.03137***
+model4	perturb_steps=20	step_size=0.003	random=0
+model4	perturb_steps=20	step_size=0.003	random=0
+model4	perturb_steps=20	step_size=0.003	random=0
+model4	perturb_steps=50	step_size=0.003	random=0
+	 Natural Acc: 0.84920, Robust acc: 0.54190, distance:0.03137
+model4	perturb_steps=20	step_size=0.01	random=0
+	 Natural Acc: 0.84920, Robust acc: 0.54190, distance:0.03137
+model2	perturb_steps=20	step_size=0.01	random=0
+	 Natural Acc: 0.83020, Robust acc: 0.49970, distance:0.03137
+model6	perturb_steps=30	step_size=0.003	random=0
+	 Natural Acc: 0.88250, Robust acc: 0.61740, distance:0.03137
+model3	perturb_steps=30	step_size=0.003	random=0
+	 Natural Acc: 0.80330, Robust acc: 0.60770, distance:0.03137
+
+ADD coef
+model3	perturb_steps=50	step_size=0.003	random=0
+	 Natural Acc: 0.80330, Robust acc: 0.38730, distance:0.03137
+model3	perturb_steps=50	step_size=0.03	random=0
+	 Natural Acc: 0.80330, Robust acc: 0.26420, distance:0.03137
+
+
+
+model4	perturb_steps=50	step_size=0.03	random=0
+model4	perturb_steps=50	step_size=0.03	random=0
+     No coef
+	 Natural Acc: 0.84920, Robust acc: 0.54370, distance:0.03137
