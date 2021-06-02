@@ -89,8 +89,8 @@ class ResNet(nn.Module):
         return out
 
 
-def ResNet18():
-    return ResNet(BasicBlock, [2, 2, 2, 2])
+def ResNet18(is_finetune=False):
+    return ResNet(BasicBlock, [2, 2, 2, 2], is_finetune=is_finetune)
 
 
 def ResNet34():
