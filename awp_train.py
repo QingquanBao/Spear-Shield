@@ -13,6 +13,7 @@ from tqdm import tqdm, trange
 
 from attack_main import eval_model_pgd
 from utils import prepare_cifar, Logger, check_mkdir
+from utils_awp import AdvWeightPerturb
 from eval_model import eval_model, eval_model_pgd
 
 
@@ -21,7 +22,7 @@ from eval_model import eval_model, eval_model_pgd
 def parse_args():
     parser = argparse.ArgumentParser(description='Test Robust Accuracy')
     parser.add_argument('--model', type=str, default='ResNet18', choices=['ResNet18', 'WideResNet28', 'ResNet34'])
-    parser.add_argument('--batch-size', type=int, default=256, metavar='N',
+    parser.add_argument('--batch_size', type=int, default=512, metavar='N',
                     help='input batch size for training (default: 128)')
     parser.add_argument('--test_batch_size', type=int, default=256, metavar='N',
                     help='input batch size for training (default: 128)')               
@@ -35,7 +36,7 @@ def parse_args():
                     help='iterations for pgd attack (default pgd20)')
     #parser.add_argument('--lr_steps', type=str, default=,
     #                help='iterations for pgd attack (default pgd20)')    
-    parser.add_argument('--epoch', type=int, default=100,
+    parser.add_argument('--epoch', type=int, default=60,
                     help='epochs for pgd training ')   
     parser.add_argument('--momentum', type=float, default=0.9,
                     help='iterations for pgd attack (default pgd20)')
@@ -49,6 +50,8 @@ def parse_args():
     parser.add_argument('--loss_criterion', type=str, default='CE', choices=['CE', 'Margin'])
     parser.add_argument('--raw_adv_dist_coef', type=float, default=0)
     parser.add_argument('--is_pretrained', type=bool, default=False)
+    parser.add_argument('--awp', type=bool, default=False)
+    parser.add_argument('--awp_gamma', type=float, default=0.01)
     return parser.parse_args()
 
 def freeze_part_model(model):
@@ -60,7 +63,7 @@ def freeze_part_model(model):
                 for param in child.parameters():
                     param.requires_grad = False
         
-def train_adv_epoch(model, args, train_loader, device, optimizer, epoch,  loss_criterion='CE', with_raw_sample=False, raw_adv_coef=0):
+def train_adv_epoch(model, args, train_loader, device, optimizer, epoch,  loss_criterion='CE', with_raw_sample=False, raw_adv_coef=0, awp_adversary=None):
     #model.train()
     #freeze_part_model(model)
     #optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=optimizer[0], momentum=optimizer[1], weight_decay=optimizer[2])
@@ -80,14 +83,17 @@ def train_adv_epoch(model, args, train_loader, device, optimizer, epoch,  loss_c
     with trange( len(train_loader.dataset)) as pbar:
         for batch_idx, (data, target) in enumerate(train_loader):
             model.train()
-        for batch_idx, (data, target) in enumerate(train_loader):
-            model.train()
             x, y = data.to(device), target.to(device)
             data_num += x.shape[0]
            
             optimizer.zero_grad()
             x_adv = pgd_attack(model, x, y, args.step_size, args.epsilon, args.perturb_steps,
                     random_start=0.001, distance='l_inf')
+   
+            if (awp_adversary != None): 
+                awp = awp_adversary.calc_awp(inputs_adv=x_adv, targets=y)
+                awp_adversary.perturb(awp)
+
             #freeze_part_model(model)
             if with_raw_sample :
                 output_adv = model(x_adv)
@@ -99,6 +105,9 @@ def train_adv_epoch(model, args, train_loader, device, optimizer, epoch,  loss_c
 
             loss.backward()
             optimizer.step()
+            if (awp_adversary != None):
+                awp_adversary.restore(awp)
+
             loss_sum += loss.item()
             with torch.no_grad():
                 model.eval()
@@ -130,7 +139,7 @@ def adjust_learning_rate(optimizer, epoch):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
-def adjust_raw_adv_coef(e):
+def adjust_raw_adv_coef(e, coef):
     if e <= 5:
         raw_adv_dist = 0.1 * args.raw_adv_dist_coef
     elif e <= 10:
@@ -152,24 +161,40 @@ if __name__=="__main__":
 
     device = torch.device('cuda')
     model = eval(args.model)().to(device)    
+    if(args.awp):
+        proxy = eval(args.model)().to(device)    
+
     if (args.is_pretrained == True):
         if (args.model == 'ResNet18'):
-            print('Load .pt for ResNet18 (Robust)')
             model.load_state_dict(torch.load('logs/Jun01-0905_resnet18/resnet18-e76-0.8311_0.5145-best.pt'))
+            if (args.awp):
+                proxy.load_state_dict(torch.load('logs/Jun01-0905_resnet18/resnet18-e76-0.8311_0.5145-best.pt'))
         elif (args.model == 'ResNet34'):
-            print('Load the .pt for Resnet34!(Non-Robust)')
             model.load_state_dict(torch.load('logs/Jun02-2351_resnet34/resnet34_e99_0.9453_0.0004-final.pt'))
-            
+            if (args.awp):
+                proxy.load_state_dict(torch.load('logs/Jun02-2351_resnet34/resnet34_e99_0.9453_0.0004-final.pt'))
+
     model = nn.DataParallel(model, device_ids=[i for i in range(gpu_num)])
+    if (args.awp):
+        proxy = nn.DataParallel(proxy, device_ids=[i for i in range(gpu_num)])
+        proxy_opt = torch.optim.SGD(proxy.parameters(), lr=0.01)
+        awp_adversary = AdvWeightPerturb(model=model, proxy=proxy, proxy_optim=proxy_opt, gamma=args.awp_gamma)
+    else:
+        awp_adversary = None
+
     train_loader, test_loader = prepare_cifar(args.batch_size, args.test_batch_size)
     optimizer= optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     #optimizer = (args.lr, args.momentum, args.weight_decay)
 
+
     best_epoch, best_robust_acc = 0, 0.
     for e in range(args.epoch):
-        adjust_learning_rate(optimizer, e)
-        raw_adv_dist = adjust_raw_adv_coef(e)
-        train_acc, train_robust_acc, loss = train_adv_epoch(model, args, train_loader, device,  optimizer, e, loss_criterion=args.loss_criterion, with_raw_sample=args.with_raw_sample, raw_adv_coef=raw_adv_dist)
+        #adjust_learning_rate(optimizer, e)
+        raw_adv_dist = adjust_raw_adv_coef(e, args.raw_adv_dist_coef)
+        train_acc, train_robust_acc, loss = train_adv_epoch(model, args, train_loader, device,  optimizer, e,
+                                                             loss_criterion=args.loss_criterion, 
+                                                            with_raw_sample=args.with_raw_sample, raw_adv_coef=raw_adv_dist,
+                                                            awp_adversary=awp_adversary)
         if e%3==0 or (e>=74 and e<=80):
             test_acc, test_robust_acc, _ = eval_model_pgd( model,  test_loader, device, args.step_size, args.epsilon, args.perturb_steps)
         else:
