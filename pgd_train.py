@@ -21,7 +21,7 @@ from eval_model import eval_model, eval_model_pgd
 def parse_args():
     parser = argparse.ArgumentParser(description='Test Robust Accuracy')
     parser.add_argument('--model', type=str, default='ResNet18', choices=['ResNet18', 'WideResNet28', 'ResNet34'])
-    parser.add_argument('--batch-size', type=int, default=256, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=512, metavar='N',
                     help='input batch size for training (default: 128)')
     parser.add_argument('--test_batch_size', type=int, default=256, metavar='N',
                     help='input batch size for training (default: 128)')               
@@ -78,8 +78,6 @@ def train_adv_epoch(model, args, train_loader, device, optimizer, epoch,  loss_c
         raise ValueError('Unknown loss criterion={}'.format(loss_criterion))
 
     with trange( len(train_loader.dataset)) as pbar:
-        for batch_idx, (data, target) in enumerate(train_loader):
-            model.train()
         for batch_idx, (data, target) in enumerate(train_loader):
             model.train()
             x, y = data.to(device), target.to(device)
@@ -159,7 +157,11 @@ if __name__=="__main__":
         elif (args.model == 'ResNet34'):
             print('Load the .pt for Resnet34!(Non-Robust)')
             model.load_state_dict(torch.load('logs/Jun02-2351_resnet34/resnet34_e99_0.9453_0.0004-final.pt'))
-            
+        elif (args.model == 'WideResNet28'):
+            #print('Load the .pt for WideResNet28! (Non-Robust)')
+            #model.load_state_dict(torch.load('logs/Jun04-2124_WideResNet28/WideResNet28_e29_0.8824_0.0000-final.pt'))
+            print('continue training')
+            model.load_state_dict(torch.load('logs/Jun04-2231_WideResNet28/WideResNet28-e55-0.6153_0.3718-best.pt'))
     model = nn.DataParallel(model, device_ids=[i for i in range(gpu_num)])
     train_loader, test_loader = prepare_cifar(args.batch_size, args.test_batch_size)
     optimizer= optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
