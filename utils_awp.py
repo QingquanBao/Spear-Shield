@@ -54,3 +54,25 @@ class AdvWeightPerturb(object):
 
     def restore(self, diff):
         add_into_weights(self.model, diff, coeff=-1.0 * self.gamma)
+
+class TradesAWP(AdvWeightPerturb):
+    def __init__(self, model, proxy, proxt_optim, gamma):
+        super(TradesAWP, self).__init__(model, proxy, proxt_optim, gamma)
+
+    def calc_awp(self, inputs_adv, inputs_clean, targets, beta):
+        self.proxy.load_state_dict(self.model.state_dict())
+        self.proxy.train()
+
+        loss_natural = F.cross_entropy(self.proxy(inputs_clean), targets)
+        loss_robust = F.kl_div(F.log_softmax(self.proxy(inputs_adv), dim=1),
+                               F.softmax(self.proxy(inputs_clean), dim=1),
+                               reduction='batchmean')
+        loss = - 1.0 * (loss_natural + beta * loss_robust)
+
+        self.proxy_optim.zero_grad()
+        loss.backward()
+        self.proxy_optim.step()
+
+        # the adversary weight perturb
+        diff = diff_in_weights(self.model, self.proxy)
+        return diff
