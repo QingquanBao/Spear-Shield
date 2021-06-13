@@ -23,3 +23,5 @@ To attack it, run `python attack.py --model_path=<The .pt>`
 - `pgd_train.py` reserves some trials of the author
 - `odi.py` is the official implementaion of ODI attack
 - `pgd_attack.py` actually contains other author's trial, such as Many PGD
+- `interesting.py` records author's interesting obfuscation of gradients. The KNN is implemented by @[ruoxi shi](https://github.com/eliphatfs), Thanks him!!!
+- `GMM.py` is implemented in https://github.com/ldeecke/gmm-torch, also thank them!!!
