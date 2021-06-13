@@ -7,7 +7,7 @@ import time
 import torchvision
 import torch.optim as optim
 from torchvision import datasets, transforms
-from pgd_attack import pgd_attack, margin_loss
+from pgd_attack import pgd_attack, margin_loss, weak_pgd_attack
 from models import ResNet18, WideResNet28, ResNet34
 from tqdm import tqdm, trange
 
@@ -79,14 +79,15 @@ def train_adv_epoch(model, args, train_loader, device, optimizer, epoch,  loss_c
 
     with trange( len(train_loader.dataset)) as pbar:
         for batch_idx, (data, target) in enumerate(train_loader):
-            model.train()
             x, y = data.to(device), target.to(device)
             data_num += x.shape[0]
            
+            #model.train()  put here is wrong
             optimizer.zero_grad()
-            x_adv = pgd_attack(model, x, y, args.step_size, args.epsilon, args.perturb_steps,
+            x_adv = weak_pgd_attack(model, x, y, args.step_size, args.epsilon, args.perturb_steps,
                     random_start=0.001, distance='l_inf')
             #freeze_part_model(model)
+            model.train() # put here is right
             if with_raw_sample :
                 output_adv = model(x_adv)
                 output = model(x)
@@ -116,7 +117,7 @@ def train_adv_epoch(model, args, train_loader, device, optimizer, epoch,  loss_c
     return acc, adv_acc, mean_loss
 
 
-def adjust_learning_rate(optimizer, epoch):
+def adjust_learning_rate(optimizer, epoch, args):
     """decrease the learning rate"""
     lr = args.lr
     if epoch >= 75:
@@ -152,8 +153,9 @@ if __name__=="__main__":
     model = eval(args.model)().to(device)    
     if (args.is_pretrained == True):
         if (args.model == 'ResNet18'):
-            print('Load .pt for ResNet18 (Robust)')
-            model.load_state_dict(torch.load('logs/Jun01-0905_resnet18/resnet18-e76-0.8311_0.5145-best.pt'))
+            print('Load .pt for ResNet18 (AWP+TRADES+Robust)')
+            #model.load_state_dict(torch.load('logs/Jun01-0905_resnet18/resnet18-e76-0.8311_0.5145-best.pt'))
+            model.load_state_dict(torch.load('logs/Jun08-2038_ResNet18/ResNet18_e119_0.7997_0.5091-final.pt'))
         elif (args.model == 'ResNet34'):
             print('Load the .pt for Resnet34!(Non-Robust)')
             model.load_state_dict(torch.load('logs/Jun02-2351_resnet34/resnet34_e99_0.9453_0.0004-final.pt'))
@@ -169,16 +171,16 @@ if __name__=="__main__":
 
     best_epoch, best_robust_acc = 0, 0.
     for e in range(args.epoch):
-        adjust_learning_rate(optimizer, e)
+        adjust_learning_rate(optimizer, e, args)
         raw_adv_dist = adjust_raw_adv_coef(e)
         train_acc, train_robust_acc, loss = train_adv_epoch(model, args, train_loader, device,  optimizer, e, loss_criterion=args.loss_criterion, with_raw_sample=args.with_raw_sample, raw_adv_coef=raw_adv_dist)
         if e%3==0 or (e>=74 and e<=80):
-            test_acc, test_robust_acc, _ = eval_model_pgd( model,  test_loader, device, args.step_size, args.epsilon, args.perturb_steps)
+            test_acc, test_robust_acc, _ ,_ ,_ = eval_model_pgd( model,  test_loader, device, args.step_size, args.epsilon, args.perturb_steps)
         else:
             test_acc, _ = eval_model( model,  test_loader, device)
         if test_robust_acc > best_robust_acc:
             best_robust_acc, best_epoch = test_robust_acc, e
-        if e > (args.epoch / 2):
+        if e > (args.epoch / 3):
             torch.save(model.module.state_dict(),  
              os.path.join(log_dir, f"{args.model}-e{e}-{test_acc:.4f}_{test_robust_acc:.4f}-best.pt"))
         log.print(f"Epoch:{e}, loss:{loss:.5f}, train_acc:{train_acc:.4f}, train_robust_acc:{train_robust_acc:.4f},  " + 

@@ -115,7 +115,7 @@ if __name__=="__main__":
         adjust_learning_rate(optimizer, e)
         train_acc, loss = train_epoch(model, args, train_loader, device,  optimizer, e)
         if e%5==0 or (e>=74 and e<=80):
-            test_acc, test_robust_acc, _ = eval_model_pgd( model,  test_loader, device, args.step_size, args.epsilon, args.perturb_steps)
+            test_acc, test_robust_acc, _, _,_ = eval_model_pgd( model,  test_loader, device, args.step_size, args.epsilon, args.perturb_steps)
         else:
             test_acc, _ = eval_model( model,  test_loader, device)
         if test_robust_acc > best_robust_acc:
