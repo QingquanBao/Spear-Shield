@@ -17,3 +17,9 @@ To attack it, run `python attack.py --model_path=<The .pt>`
 
 **Attention**: the main dir should include `mymodel.py`, `utils.py`, `utils_awp.py` and `eval_model.py`
 **Attention**: the main dir should include the dir `model` including WideResNet34 
+
+## Others
+- `normal_train.py` is the normal training of NN.
+- `pgd_train.py` reserves some trials of the author
+- `odi.py` is the official implementaion of ODI attack
+- `pgd_attack.py` actually contains other author's trial, such as Many PGD
